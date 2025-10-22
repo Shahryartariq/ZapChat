@@ -6,9 +6,33 @@ const Page = styled.div`
   display: flex;
   height: 100vh;
   width: 100%;
-  align-items: center;
   background-color: #46516e;
+  color: white;
+`;
+
+const ChatSection = styled.div`
+  flex: 3;
+  display: flex;
   flex-direction: column;
+  align-items: center;
+  justify-content: center;
+`;
+
+const UsersSection = styled.div`
+  flex: 1;
+  border-left: 1px solid #999;
+  padding: 20px;
+  background-color: #3b4561;
+  overflow-y: auto;
+`;
+
+const UserItem = styled.div`
+  background: ${(props) => (props.me ? "pink" : "#556080")};
+  color: ${(props) => (props.me ? "#46516e" : "white")};
+  border-radius: 8px;
+  padding: 8px;
+  margin-bottom: 10px;
+  text-align: center;
 `;
 
 const Container = styled.div`
@@ -29,15 +53,12 @@ const TextArea = styled.textarea`
   height: 100px;
   border-radius: 10px;
   margin-top: 10px;
-  padding-left: 10px;
-  padding-top: 10px;
+  padding: 10px;
   font-size: 17px;
   background-color: transparent;
   border: 1px solid lightgray;
   outline: none;
   color: lightgray;
-  letter-spacing: 1px;
-  line-height: 20px;
   ::placeholder {
     color: lightgray;
   }
@@ -70,7 +91,7 @@ const MyMessage = styled.div`
   color: #46516e;
   padding: 10px;
   margin-right: 5px;
-  text-align: center;
+  text-align: left;
   border-top-right-radius: 10%;
   border-bottom-right-radius: 10%;
 `;
@@ -86,75 +107,139 @@ const PartnerMessage = styled.div`
   border: 1px solid lightgray;
   padding: 10px;
   margin-left: 5px;
-  text-align: center;
+  text-align: left;
   border-top-left-radius: 10%;
   border-bottom-left-radius: 10%;
 `;
 
+const SystemMessage = styled.div`
+  text-align: center;
+  color: #cfcfcf;
+  font-style: italic;
+  margin: 10px 0;
+`;
+
 const App = () => {
   const [yourID, setYourID] = useState();
+  const [username, setUsername] = useState("");
+  const [users, setUsers] = useState({});
   const [messages, setMessages] = useState([]);
   const [message, setMessage] = useState("");
-
+  const [joined, setJoined] = useState(false);
+  const [connected, setConnected] = useState(false);
   const socketRef = useRef();
 
   useEffect(() => {
-    socketRef.current = io.connect('/');
+    socketRef.current = io.connect("/");
 
-    socketRef.current.on("your id", id => {
-      setYourID(id);
-    })
+    socketRef.current.on("connect", () => {
+      setYourID(socketRef.current.id);
+      setConnected(true); // ✅ Frontend knows it’s connected
+    });
 
-    socketRef.current.on("message", (message) => {
-      console.log("here");
-      receivedMessage(message);
-    })
+    socketRef.current.on("user list", (usersList) => {
+      setUsers(usersList);
+    });
+
+    socketRef.current.on("message", (msg) => {
+      setMessages((oldMsgs) => [...oldMsgs, msg]);
+    });
+
+    socketRef.current.on("system message", (text) => {
+      setMessages((oldMsgs) => [...oldMsgs, { system: true, text }]);
+    });
   }, []);
 
-  function receivedMessage(message) {
-    setMessages(oldMsgs => [...oldMsgs, message]);
-  }
+  const joinChat = () => {
+    if (username.trim() === "") return alert("Please enter your name");
+    socketRef.current.emit("join", username);
+    setJoined(true);
+  };
 
-  function sendMessage(e) {
+  const sendMessage = (e) => {
     e.preventDefault();
-    const messageObject = {
+    if (!message.trim()) return;
+    const msgObj = {
       body: message,
+      sender: username,
       id: yourID,
     };
+    socketRef.current.emit("send message", msgObj);
     setMessage("");
-    socketRef.current.emit("send message", messageObject);
-  }
+  };
 
-  function handleChange(e) {
-    setMessage(e.target.value);
+  if (!joined) {
+    return (
+      <Page style={{ justifyContent: "center", alignItems: "center" }}>
+        <div style={{ textAlign: "center" }}>
+          <h2>Welcome to ChatApp</h2>
+          {connected ? (
+            <p style={{ color: "lightgreen" }}>✅ Connected to server</p>
+          ) : (
+            <p style={{ color: "red" }}>🔴 Connecting...</p>
+          )}
+          <input
+            type="text"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            placeholder="Enter your name"
+            style={{
+              padding: "10px",
+              borderRadius: "5px",
+              border: "none",
+              marginRight: "10px",
+              width: "200px",
+            }}
+          />
+          <Button onClick={joinChat}>Join Chat</Button>
+        </div>
+      </Page>
+    );
   }
 
   return (
     <Page>
-      <Container>
-        {messages.map((message, index) => {
-          if (message.id === yourID) {
-            return (
+      <ChatSection>
+        <Container>
+          {messages.map((msg, index) => {
+            if (msg.system) {
+              return <SystemMessage key={index}>{msg.text}</SystemMessage>;
+            }
+            const isMe = msg.id === yourID;
+            return isMe ? (
               <MyRow key={index}>
                 <MyMessage>
-                  {message.body}
+                  <b>You:</b> {msg.body}
                 </MyMessage>
               </MyRow>
-            )
-          }
-          return (
-            <PartnerRow key={index}>
-              <PartnerMessage>
-                {message.body}
-              </PartnerMessage>
-            </PartnerRow>
-          )
-        })}
-      </Container>
-      <Form onSubmit={sendMessage}>
-        <TextArea value={message} onChange={handleChange} placeholder="Say something..." />
-        <Button>Send</Button>
-      </Form>
+            ) : (
+              <PartnerRow key={index}>
+                <PartnerMessage>
+                  <b>{msg.sender}:</b> {msg.body}
+                </PartnerMessage>
+              </PartnerRow>
+            );
+          })}
+        </Container>
+
+        <Form onSubmit={sendMessage}>
+          <TextArea
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder="Type yourrr message..."
+          />
+          <Button>Send</Button>
+        </Form>
+      </ChatSection>
+
+      <UsersSection>
+        <h3>Connected Users</h3>
+        {Object.entries(users).map(([id, name]) => (
+          <UserItem key={id} me={id === yourID}>
+            {name} {id === yourID && "(You)"}
+          </UserItem>
+        ))}
+      </UsersSection>
     </Page>
   );
 };

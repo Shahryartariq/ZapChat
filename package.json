@@ -10,9 +10,11 @@
   },
   "scripts": {
     "start": "cross-env PROD=true node server.js",
+    "dev": "concurrently \"cd client && yarn start\" \"cross-env PROD=false node server.js\"",
     "postinstall": "cd ./client && yarn"
   },
   "devDependencies": {
+    "concurrently": "^9.2.1",
     "cross-env": "^10.1.0"
   }
 }
