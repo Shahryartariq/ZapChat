@@ -235,7 +235,7 @@ const App = () => {
           <TextArea
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            placeholder="Type yourrr message..."
+            placeholder="Type your message..."
           />
           <Button>Send</Button>
         </Form>
