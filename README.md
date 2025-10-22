@@ -28,4 +28,5 @@ ZapChat enables users to send and receive messages instantly using **WebSocket**
 git clone https://github.com/Shahryartariq/ZapChat.git
 cd ZapChat
 npm install
+npm run build
 npm start
