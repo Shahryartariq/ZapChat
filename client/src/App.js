@@ -172,7 +172,7 @@ const App = () => {
     return (
       <Page style={{ justifyContent: "center", alignItems: "center" }}>
         <div style={{ textAlign: "center" }}>
-          <h2>Welcome to ChatApp</h2>
+          <h2>Welcome to Zap Chat</h2>
           {connected ? (
             <p style={{ color: "lightgreen" }}>✅ Connected to server</p>
           ) : (
@@ -191,7 +191,16 @@ const App = () => {
               width: "200px",
             }}
           />
-          <Button onClick={joinChat}>Join Chat</Button>
+          <Button 
+          style={{
+              marginTop: "10px",
+              width: "225px",
+              display: "block",
+              padding: "10px",
+              borderRadius: "5px",
+              border: "none",
+            }}
+          onClick={joinChat}>Join Chat</Button>
         </div>
       </Page>
     );
